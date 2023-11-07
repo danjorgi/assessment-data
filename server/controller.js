@@ -11,7 +11,7 @@ const sequelize = new Sequelize(CONNECTION_STRING, {
     }
 });
 
-sequelize.authenticate().then(() => {console.log('Connection established successfully.')}).catch(err => {console.error('Unable to connect to the database:', err)})
+sequelize.authenticate().then(() => {console.log('Connection to database established successfully.')}).catch(err => {console.error('Unable to connect to the database:', err)})
 
 module.exports = {
     seed: (req, res) => {
@@ -231,5 +231,62 @@ module.exports = {
             console.log('DB seeded!')
             res.sendStatus(200)
         }).catch(err => console.log('error seeding DB', err))
+    },
+
+    getCountries: (req, res) => {
+        sequelize.query('SELECT * FROM countries')
+        .then(dbRes => {
+            res.status(200).send(dbRes[0]);
+        })
+        .catch(error => {
+            res.status(500).send({error: 'Failed to retrieve countries from the database'});
+        })
+    },
+
+    createCity: (req, res) => {
+        const {name, rating, countryId} = req.body;
+
+        const insertQuery = `INSERT INTO cities (name, rating, country_id)
+        VALUES ('${name}', ${rating}, ${countryId})`;
+        
+        sequelize.query(insertQuery)
+        .then((dbRes) => {
+            res.status(200).send(dbRes[0]);
+        })
+        .catch((error) => {
+            console.error(error);
+            res.status(500).send("Error occured while adding city.");
+        });
+    },
+
+    getCities: (req, res) => {
+        sequelize.query(`
+        SELECT cities.city_id, cities.name AS city, cities.rating, countries.country_id, countries.name AS country
+        FROM cities
+        JOIN countries ON cities.country_id = countries.country_id
+        `)
+        .then((dbRes) => {
+            res.status(200).send(dbRes);
+        })
+        .catch((error) => {
+            console.error(error);
+            res.status(500).send("Error occurred while retrieving cities.")
+        });
+    },
+
+    deleteCity: (req, res) => {
+        const {id} = req.params;
+
+        const deleteQuery = `DELETE FROM cities WHERE city_id = ${id}`;
+
+        sequelize.query(deleteQuery)
+            .then(() => {
+                res.status(200).send("City deleted successfully.");
+            })
+            .catch((error) => {
+                console.error(error);
+                res.status(500).send("Error occurred while deleting city.");
+            });
+
     }
 }
